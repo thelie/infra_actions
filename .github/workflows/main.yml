@@ -61,3 +61,20 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/infra_actions:latest
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_push_to_docker_hub
+    steps:
+      - name: executing remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRACTICUM_PYTHON_IP }}
+          username: ${{ secrets.PRACTICUM_PYTHON_SSH_USERNAME }}
+          key: ${{ secrets.PRACTICUM_PYTHON_SSH_KEY }}
+          passphrase: ${{ secrets.PRACTICUM_PYTHON_SSH_PASSPHRASE }} # Если ваш ssh-ключ защищён фразой-паролем
+          script: |
+            # Выполняет pull образа с DockerHub
+            sudo docker pull thelie/infra_actions
+            # остановка всех контейнеров
+            sudo docker stop $(sudo docker ps -a -q)
+            sudo docker run --rm -d -p 5000:5000 thelie/infra_actions
